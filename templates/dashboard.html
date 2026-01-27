@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Task Manager</title>
+</head>
+<body>
+
+<style>
+    :root {
+        --primary: #6366f1;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+    }
+
+    body { background-color: var(--bg); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; }
+
+    .dashboard-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: var(--card);
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        text-decoration: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e2e8f0;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .stat-card h4 { margin: 0; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 700; margin-top: 0.5rem; display: block; color: var(--text-main); }
+
+    /* Action Bar */
+    .action-bar {
+        background: var(--card);
+        padding: 1rem;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+    }
+    .add-task-form { display: flex; gap: 0.5rem; flex-grow: 1; max-width: 600px; }
+    .add-task-form input {
+        flex-grow: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        outline: none;
+    }
+    .add-task-form input:focus { border-color: var(--primary); }
+
+    /* Buttons */
+    .btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #f1f5f9; color: var(--text-main); }
+    .btn-danger { color: var(--danger); background: #fef2f2; }
+    .btn-danger:hover { background: var(--danger); color: white; }
+
+    /* Table Styling */
+    .task-list-container {
+        background: var(--card);
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 1rem; background: #f8fafc; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid #e2e8f0; }
+    td { padding: 1.2rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    
+    /* Status Badges */
+    .badge {
+        padding: 0.3rem 0.75rem;
+        border-radius: 99px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .bg-pending { background: #fff7ed; color: #9a3412; }
+    .bg-progress { background: #eef2ff; color: #3730a3; }
+    .bg-complete { background: #f0fdf4; color: #166534; }
+
+    .import-export-box {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f1f5f9;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    tr[draggable="true"] {
+        cursor: grab;
+    }
+    tr[draggable="true"]:active {
+        cursor: grabbing;
+    }
+
+
+</style>
+
+<div class="dashboard-container">
+    
+    <header style="margin-bottom: 2rem;">
+        <div style="text-align:right;"><b>{{ request.user.username }}</b> |
+        <a href="{% url 'logout' %}">Logout</a>
+        </div>
+        <h2 style="font-size: 1.75rem; font-weight: 800;">My Workspace</h2>
+        <p style="color: var(--text-muted);">Manage your productivity and track task durations.</p>
+    </header>
+
+    <div class="stats-grid">
+        <a href="{% url 'dashboard' %}" class="stat-card">
+            <h4>Total Tasks</h4>
+            <span class="value">{{ stats.total }}</span>
+        </a>
+        <a href="?status=Not Started" class="stat-card" style="border-left: 4px solid var(--warning);">
+            <h4>Pending</h4>
+            <span class="value">{{ stats.pending }}</span>
+        </a>
+        <a href="?status=In Progress" class="stat-card" style="border-left: 4px solid var(--primary);">
+            <h4>In Progress</h4>
+            <span class="value">{{ stats.in_progress }}</span>
+        </a>
+        <a href="?status=Completed" class="stat-card" style="border-left: 4px solid var(--success);">
+            <h4>Completed</h4>
+            <span class="value">{{ stats.completed }}</span>
+        </a>
+    </div>
+
+    <div class="action-bar">
+        <form method="POST" class="add-task-form">
+            {% csrf_token %}
+            <input type="text" name="task" placeholder="What needs to be done?" required>
+            <button type="submit" class="btn btn-primary">＋ Add Task</button>
+        </form>
+        
+        <a href="{% url 'export_csv' %}" class="btn btn-secondary">📤 Export CSV</a>
+    </div>
+
+    <div class="task-list-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>TASK DESCRIPTION</th>
+                    <th>STATUS</th>
+                    <th>TIMELINE</th>
+                    <th>DURATION</th>
+                    <th style="text-align: right;">ACTIONS</th>
+                </tr> 
+            </thead>
+            <tbody id="task-list">
+                {% for t in tasks %}
+                <tr draggable="true" data-id="{{ t.id }}">
+                    <td>☰</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ t.task }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Created {{ t.created_at|date:"M d" }}</div>
+                    </td>
+                    <td>
+                        <span class="badge 
+                            {% if t.status == 'Completed' %}bg-complete
+                            {% elif t.status == 'In Progress' %}bg-progress
+                            {% else %}bg-pending{% endif %}">
+                            {{ t.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.8rem;">
+                            {% if t.started_at %}
+                                <div style="color: var(--text-muted);">Start: {{ t.started_at|date:"H:i" }}</div>
+                            {% endif %}
+                            {% if t.completed_at %}
+                                <div style="color: var(--text-muted);">End: {{ t.completed_at|date:"H:i" }}</div>
+                            {% endif %}
+                            {% if not t.started_at %}—{% endif %}
+                        </div>
+                    </td>
+                    <td style="font-family: monospace;">{{ t.duration|default:"0h 0m" }}</td>
+                    <td style="text-align: right;">
+                        {% if t.status == "Not Started" %}
+                            <a href="{% url 'start_task' t.id %}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">▶ Start</a>
+                        {% endif %}
+                        {% if t.status == "In Progress" %}
+                            <a href="{% url 'complete_task' t.id %}" class="btn btn-primary" style="background: var(--success); padding: 0.4rem 0.8rem; font-size: 0.8rem;">Complete</a>
+                        {% endif %}
+                        <a href="{% url 'delete_task' t.id %}" class="btn btn-danger" onclick="return confirm('Delete task?')" style="padding: 0.4rem 0.6rem;">🗑</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                        <p>No tasks found in this category.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="import-export-box">
+        <div>
+            <h4 style="margin: 0;">Import</h4>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Upload a CSV file to add multiple tasks at once.</p>
+        </div>
+        <form method="POST" action="{% url 'import_csv' %}" enctype="multipart/form-data" style="display: flex; gap: 0.5rem;">
+            {% csrf_token %}
+            <input type="file" name="file" accept=".csv" required style="font-size: 0.8rem;">
+            <button type="submit" class="btn btn-secondary">Import CSV</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+const list = document.getElementById("task-list");
+let draggedRow = null;
+
+list.addEventListener("dragstart", e => {
+    draggedRow = e.target.closest("tr");
+    draggedRow.style.opacity = 0.5;
+});
+
+list.addEventListener("dragend", () => {
+    draggedRow.style.opacity = "";
+    updateOrder();
+});
+
+list.addEventListener("dragover", e => {
+    e.preventDefault();
+
+    const targetRow = e.target.closest("tr");
+    if (!targetRow || targetRow === draggedRow) return;
+
+    const rect = targetRow.getBoundingClientRect();
+    const offset = e.clientY - rect.top;
+
+    if (offset < rect.height / 2) {
+        list.insertBefore(draggedRow, targetRow);
+    } else {
+
+        list.insertBefore(draggedRow, targetRow.nextSibling);
+    }
+});
+
+
+function updateOrder() {
+    const rows = document.querySelectorAll("#task-list tr");
+    const order = [];
+
+    rows.forEach((row, index) => {
+        order.push({
+            id: row.dataset.id,
+            position: index + 1
+        });
+    });
+
+    fetch("{% url 'update_task_order' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(order)
+    });
+}
+</script>
+
+</body>
+</html>
