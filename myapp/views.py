@@ -17,12 +17,15 @@ from django.views.decorators.csrf import csrf_exempt
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from django.shortcuts import get_object_or_404
 
 def get_sheet_service():
     """
     Creates and returns Google Sheets service using service account
     """
     SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_KEY")
+    if not SERVICE_ACCOUNT_FILE:
+        raise ValueError("SERVICE_ACCOUNT_FILE is not set in .env")
 
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -103,6 +106,20 @@ def start_task(request, pk):
     return redirect("dashboard")
 
 
+def update_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    if request.method == "POST":
+        new_name = request.POST.get("task")
+        if new_name:
+            task.task = new_name
+            task.save()
+
+        return redirect("dashboard")
+    return render(request, "update_task.html", {
+        "task": task
+    })
+
+
 def complete_task(request, pk):
     task = Task.objects.get(pk=pk)
     task.status = "Completed"
@@ -157,6 +174,8 @@ def import_csv(request):
 @login_required
 def sync_google_sheet(request):
     SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+    if not SPREADSHEET_ID:
+        raise ValueError("SPREADSHEET_ID is not set in .env")
     RANGE = "Sheet1!A2:G"
 
     service = get_sheet_service()

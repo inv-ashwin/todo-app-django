@@ -211,6 +211,8 @@
                     </td>
                     <td style="font-family: monospace;">{{ t.duration|default:"0h 0m" }}</td>
                     <td style="text-align: right;">
+                        <a href="{% url 'edit_task' t.id %}" class="btn btn-primary">Edit</a>
+
                         {% if t.status == "Not Started" %}
                             <a href="{% url 'start_task' t.id %}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">▶ Start</a>
                         {% endif %}
