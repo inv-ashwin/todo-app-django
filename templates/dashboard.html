@@ -163,10 +163,18 @@
         <a href="{% url 'export_csv' %}" class="btn btn-secondary">📤 Export CSV</a>
     </div>
 
+<!-- updatee -->
+    <form method="POST" action="{% url 'sync_google_sheet' %}">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Sync to Google Sheets</button>
+    </form>
+
+
     <div class="task-list-container">
         <table>
             <thead>
                 <tr>
+                    <th></th>
                     <th>TASK DESCRIPTION</th>
                     <th>STATUS</th>
                     <th>TIMELINE</th>

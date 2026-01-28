@@ -84,3 +84,5 @@ dist/
 # ======================
 tmp/
 temp/
+
+secret_key

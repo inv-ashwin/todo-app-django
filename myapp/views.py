@@ -15,6 +15,25 @@ from django.http import JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
+def get_sheet_service():
+    """
+    Creates and returns Google Sheets service using service account
+    """
+    SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_KEY")
+
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+    creds = Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE,
+        scopes=SCOPES
+    )
+
+    return build("sheets", "v4", credentials=creds)
+
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -134,6 +153,45 @@ def import_csv(request):
 
     return redirect("dashboard")    
 
+
+@login_required
+def sync_google_sheet(request):
+    SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+    RANGE = "Sheet1!A2:G"
+
+    service = get_sheet_service()
+    sheet = service.spreadsheets()
+
+    values = []
+
+    tasks = Task.objects.all().order_by("position")
+
+    for task in tasks:
+        values.append([
+            task.id,
+            task.task,
+            task.status,
+            str(task.created_at),
+            str(task.started_at or ""),
+            str(task.completed_at or ""),
+            task.position,
+        ])
+
+    # Clear old rows
+    sheet.values().clear(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE
+    ).execute()
+
+    # Write fresh data
+    sheet.values().update(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE,
+        valueInputOption="RAW",
+        body={"values": values}
+    ).execute()
+
+    return redirect("dashboard")
 
 @csrf_exempt
 def update_task_order(request):
