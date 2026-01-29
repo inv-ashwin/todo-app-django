@@ -12,7 +12,7 @@ urlpatterns = [
     path("import/", import_csv, name="import_csv"),
     path("reorder/", update_task_order, name="update_task_order"),
     path("sync-sheet/", sync_google_sheet, name="sync_google_sheet"),
-    path("update_task/<int:task_id>/", update_task, name="edit_task"),
+    path("update_task/<int:task_id>/", update_task, name="update_task"),
     path("import_sheet/", import_from_google_sheet, name="import_from_google_sheet"),
 
 ]

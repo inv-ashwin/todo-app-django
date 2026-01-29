@@ -4,9 +4,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from django.core.files.uploadedfile import SimpleUploadedFile
-
+import json
 from myapp.models import Task
-
+from unittest.mock import patch, MagicMock
 class TaskModelTest(TestCase):
 
     def test_task_creation_defaults(self):
@@ -139,7 +139,7 @@ class CSVTest(TestCase):
     def test_import_csv(self):
         csv_data = (
             "task,status,created_at,started_at,completed_at\n"
-            "Imported Task,Not Started,2026-01-01 10:00:00,,\n"
+            "Imported Task,Not Started,2026-01-01T10:00:00Z,,\n"
         )
 
         file = SimpleUploadedFile(
@@ -168,3 +168,74 @@ class CSVTest(TestCase):
         self.client.post(reverse("import_csv"), {"file": file2})
 
         self.assertEqual(Task.objects.count(), 1)
+
+class TaskOrderTest(TestCase):
+    def setUp(self):
+        self.t1 = Task.objects.create(task="Task 1", position=1)
+        self.t2 = Task.objects.create(task="Task 2", position=2)
+
+    def test_update_task_order(self):
+        # Swap positions
+        data = [
+            {"id": self.t1.id, "position": 2},
+            {"id": self.t2.id, "position": 1}
+        ]
+        response = self.client.post(
+            reverse("update_task_order"),
+            data=json.dumps(data),
+            content_type="application/json"
+        )
+        
+        self.t1.refresh_from_db()
+        self.t2.refresh_from_db()
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.t1.position, 2)
+        self.assertEqual(self.t2.position, 1)
+
+class InlineEditTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="editor", password="pass")
+        self.client.login(username="editor", password="pass")
+        self.task = Task.objects.create(task="Old Name")
+
+    def test_ajax_update_task(self):
+        response = self.client.post(
+            reverse("update_task", args=[self.task.id]),
+            {"task": "Updated Name"}
+        )
+        
+        self.task.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.task.task, "Updated Name")
+
+    def test_ajax_update_empty_fails(self):
+        response = self.client.post(
+            reverse("update_task", args=[self.task.id]),
+            {"task": ""}
+        )
+        self.assertEqual(response.status_code, 400)
+
+
+
+class GoogleSheetsTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="syncuser", password="pass")
+        self.client.login(username="syncuser", password="pass")
+        Task.objects.create(task="Sync Task", position=1)
+
+    @patch('myapp.views.get_sheet_service') # Adjust 'myapp' to your app name
+    @patch('os.getenv')
+    def test_sync_to_google_sheets(self, mock_env, mock_service):
+        # Setup mocks
+        mock_env.return_value = "dummy_id"
+        mock_sheet = MagicMock()
+        mock_service.return_value.spreadsheets.return_value = mock_sheet
+        
+        response = self.client.get(reverse("sync_google_sheet"))
+        
+        # Verify redirect
+        self.assertRedirects(response, reverse("dashboard"))
+        # Verify clear and update were called
+        self.assertTrue(mock_sheet.values().clear.called)
+        self.assertTrue(mock_sheet.values().update.called)
