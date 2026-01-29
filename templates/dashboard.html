@@ -1,131 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Task Manager</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
-<style>
-    :root {
-        --primary: #6366f1;
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text-main: #1e293b;
-        --text-muted: #64748b;
-        --success: #22c55e;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-    }
-
-    body { background-color: var(--bg); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; }
-
-    .dashboard-container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
-
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-    .stat-card {
-        background: var(--card);
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        text-decoration: none;
-        transition: transform 0.2s, box-shadow 0.2s;
-        border: 1px solid #e2e8f0;
-    }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    .stat-card h4 { margin: 0; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-card .value { font-size: 1.8rem; font-weight: 700; margin-top: 0.5rem; display: block; color: var(--text-main); }
-
-    /* Action Bar */
-    .action-bar {
-        background: var(--card);
-        padding: 1rem;
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        border: 1px solid #e2e8f0;
-    }
-    .add-task-form { display: flex; gap: 0.5rem; flex-grow: 1; max-width: 600px; }
-    .add-task-form input {
-        flex-grow: 1;
-        padding: 0.75rem 1rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        outline: none;
-    }
-    .add-task-form input:focus { border-color: var(--primary); }
-
-    /* Buttons */
-    .btn {
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-secondary { background: #f1f5f9; color: var(--text-main); }
-    .btn-danger { color: var(--danger); background: #fef2f2; }
-    .btn-danger:hover { background: var(--danger); color: white; }
-
-    /* Table Styling */
-    .task-list-container {
-        background: var(--card);
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
-    }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { padding: 1rem; background: #f8fafc; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid #e2e8f0; }
-    td { padding: 1.2rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    
-    /* Status Badges */
-    .badge {
-        padding: 0.3rem 0.75rem;
-        border-radius: 99px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .bg-pending { background: #fff7ed; color: #9a3412; }
-    .bg-progress { background: #eef2ff; color: #3730a3; }
-    .bg-complete { background: #f0fdf4; color: #166534; }
-
-    .import-export-box {
-        margin-top: 2rem;
-        padding: 1.5rem;
-        background: #f1f5f9;
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    tr[draggable="true"] {
-        cursor: grab;
-    }
-    tr[draggable="true"]:active {
-        cursor: grabbing;
-    }
-
-
-</style>
-
 <div class="dashboard-container">
-    
     <header style="margin-bottom: 2rem;">
         <div style="text-align:right;"><b>{{ request.user.username }}</b> |
         <a href="{% url 'logout' %}">Logout</a>
@@ -159,16 +41,26 @@
             <input type="text" name="task" placeholder="What needs to be done?" required>
             <button type="submit" class="btn btn-primary">＋ Add Task</button>
         </form>
-        
         <a href="{% url 'export_csv' %}" class="btn btn-secondary">📤 Export CSV</a>
     </div>
 
-<!-- updatee -->
-    <form method="POST" action="{% url 'sync_google_sheet' %}">
-        {% csrf_token %}
-        <button class="btn btn-primary" type="submit">Sync to Google Sheets</button>
-    </form>
-
+    <div class="split-button-group">        
+        <form method="POST" action="{% url 'sync_google_sheet' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="split-btn">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+                <span>Sync To</span>
+            </button>
+        </form>
+        <div class="divider"></div>
+        <form method="POST" action="{% url 'import_from_google_sheet' %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="split-btn">
+                <svg class="icon-svg" style="transform: scaleX(-1);" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+                <span>Import From</span>
+            </button>
+        </form>
+    </div>
 
     <div class="task-list-container">
         <table>
@@ -186,33 +78,27 @@
                 {% for t in tasks %}
                 <tr draggable="true" data-id="{{ t.id }}">
                     <td>☰</td>
-                    <td>
-                        <div style="font-weight: 600;">{{ t.task }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Created {{ t.created_at|date:"M d" }}</div>
+                    <td class="task-cell" data-id="{{ t.id }}">
+                        <div class="display-mode">
+                            <span class="task-text" style="font-weight: 600; cursor: pointer;">{{ t.task }}</span>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Created {{ t.created_at|date:"M d" }}</div>
+                        </div>
+                        <div class="edit-mode" style="display: none; align-items: center; gap: 5px;">
+                            <input type="text" class="edit-input" value="{{ t.task }}" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--primary); width: 70%;">
+                            <button class="save-btn" style="background: none; border: none; cursor: pointer; color: var(--success); font-size: 1.2rem;">✔</button>
+                            <button class="cancel-btn" style="background: none; border: none; cursor: pointer; color: var(--danger); font-size: 1.2rem;">✖</button>
+                        </div>
                     </td>
-                    <td>
-                        <span class="badge 
-                            {% if t.status == 'Completed' %}bg-complete
-                            {% elif t.status == 'In Progress' %}bg-progress
-                            {% else %}bg-pending{% endif %}">
-                            {{ t.status }}
-                        </span>
-                    </td>
+                    <td><span class="badge {% if t.status == 'Completed' %}bg-complete{% elif t.status == 'In Progress' %}bg-progress{% else %}bg-pending{% endif %}">{{ t.status }}</span></td>
                     <td>
                         <div style="font-size: 0.8rem;">
-                            {% if t.started_at %}
-                                <div style="color: var(--text-muted);">Start: {{ t.started_at|date:"H:i" }}</div>
-                            {% endif %}
-                            {% if t.completed_at %}
-                                <div style="color: var(--text-muted);">End: {{ t.completed_at|date:"H:i" }}</div>
-                            {% endif %}
+                            {% if t.started_at %}<div style="color: var(--text-muted);">Start: {{ t.started_at|date:"H:i" }}</div>{% endif %}
+                            {% if t.completed_at %}<div style="color: var(--text-muted);">End: {{ t.completed_at|date:"H:i" }}</div>{% endif %}
                             {% if not t.started_at %}—{% endif %}
                         </div>
                     </td>
                     <td style="font-family: monospace;">{{ t.duration|default:"0h 0m" }}</td>
                     <td style="text-align: right;">
-                        <a href="{% url 'edit_task' t.id %}" class="btn btn-primary">Edit</a>
-
                         {% if t.status == "Not Started" %}
                             <a href="{% url 'start_task' t.id %}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">▶ Start</a>
                         {% endif %}
@@ -223,11 +109,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align: center; padding: 4rem; color: var(--text-muted);">
-                        <p>No tasks found in this category.</p>
-                    </td>
-                </tr>
+                <tr><td colspan="6" style="text-align: center; padding: 4rem; color: var(--text-muted);">No tasks found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -244,62 +126,8 @@
             <button type="submit" class="btn btn-secondary">Import CSV</button>
         </form>
     </div>
-
 </div>
 
-<script>
-const list = document.getElementById("task-list");
-let draggedRow = null;
-
-list.addEventListener("dragstart", e => {
-    draggedRow = e.target.closest("tr");
-    draggedRow.style.opacity = 0.5;
-});
-
-list.addEventListener("dragend", () => {
-    draggedRow.style.opacity = "";
-    updateOrder();
-});
-
-list.addEventListener("dragover", e => {
-    e.preventDefault();
-
-    const targetRow = e.target.closest("tr");
-    if (!targetRow || targetRow === draggedRow) return;
-
-    const rect = targetRow.getBoundingClientRect();
-    const offset = e.clientY - rect.top;
-
-    if (offset < rect.height / 2) {
-        list.insertBefore(draggedRow, targetRow);
-    } else {
-
-        list.insertBefore(draggedRow, targetRow.nextSibling);
-    }
-});
-
-
-function updateOrder() {
-    const rows = document.querySelectorAll("#task-list tr");
-    const order = [];
-
-    rows.forEach((row, index) => {
-        order.push({
-            id: row.dataset.id,
-            position: index + 1
-        });
-    });
-
-    fetch("{% url 'update_task_order' %}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify(order)
-    });
-}
-</script>
-
+<script src="{% static 'js/dashboard.js' %}"></script>
 </body>
 </html>

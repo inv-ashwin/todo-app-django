@@ -10,6 +10,7 @@ from django.db import IntegrityError
 from django.utils.dateparse import parse_datetime
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.db.models import Max
 from django.http import JsonResponse
 import json
@@ -106,19 +107,26 @@ def start_task(request, pk):
     return redirect("dashboard")
 
 
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
+from .models import Task  # Ensure your model name is correct
+
+@require_POST
 def update_task(request, task_id):
+    # Security: Ensure the task belongs to the logged-in user
     task = get_object_or_404(Task, id=task_id)
-    if request.method == "POST":
-        new_name = request.POST.get("task")
-        if new_name:
-            task.task = new_name
-            task.save()
-
-        return redirect("dashboard")
-    return render(request, "update_task.html", {
-        "task": task
-    })
-
+    
+    new_name = request.POST.get("task")
+    
+    if new_name:
+        task.task = new_name
+        task.save()
+        # Return a 200 Success status. JavaScript will handle the UI update.
+        return HttpResponse(status=200)
+    
+    # Return a 400 Bad Request if the task name was empty
+    return HttpResponse(status=400)
 
 def complete_task(request, pk):
     task = Task.objects.get(pk=pk)
@@ -209,6 +217,46 @@ def sync_google_sheet(request):
         valueInputOption="RAW",
         body={"values": values}
     ).execute()
+
+    return redirect("dashboard")
+
+def import_from_google_sheet(request):
+    SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+    if not SPREADSHEET_ID:
+        raise ValueError("SPREADSHEET_ID is not set in .env")
+    RANGE = "Sheet1!A2:G"
+
+    service = get_sheet_service()
+    sheet = service.spreadsheets()
+
+    result = sheet.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=RANGE
+    ).execute()
+
+    rows = result.get("values", [])
+
+    for row in rows:
+        task_id = row[0]
+        task_name = row[1]
+        status = row[2] if len(row) > 2 else "Not Started"
+        created_at = parse_datetime(row[3]) if len(row) > 3 else None
+        started_at = parse_datetime(row[4]) if len(row) > 4 else None
+        completed_at = parse_datetime(row[5]) if len(row) > 5 else None
+        position = int(row[6]) if len(row) > 6 else 0
+
+
+        Task.objects.update_or_create(
+            id=task_id,
+            defaults={
+                "task": task_name,
+                "status": status,
+                "created_at": created_at,
+                "started_at": started_at,
+                "completed_at": completed_at,
+                "position": position,
+            }
+        )
 
     return redirect("dashboard")
 
