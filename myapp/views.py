@@ -24,9 +24,14 @@ def get_sheet_service():
     """
     Creates and returns Google Sheets service using service account
     """
-    SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_KEY")
-    if not SERVICE_ACCOUNT_FILE:
-        raise ValueError("SERVICE_ACCOUNT_FILE is not set in .env")
+# Get the relative path from the environment variable
+    relative_path = os.getenv("GOOGLE_SERVICE_KEY") 
+    
+    # Force it to be an absolute path starting from your project root
+    SERVICE_ACCOUNT_FILE = os.path.join(settings.BASE_DIR, relative_path)
+
+    if not os.path.exists(SERVICE_ACCOUNT_FILE):
+        raise FileNotFoundError(f"Key file not found at: {SERVICE_ACCOUNT_FILE}")
 
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -106,11 +111,6 @@ def start_task(request, pk):
     task.save()
     return redirect("dashboard")
 
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_POST
-from .models import Task  # Ensure your model name is correct
 
 @require_POST
 def update_task(request, task_id):
@@ -220,7 +220,7 @@ def sync_google_sheet(request):
 
     return redirect("dashboard")
 
-def import_from_google_sheet(request):
+def import_from_google_sheet(_request):
     SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
     if not SPREADSHEET_ID:
         raise ValueError("SPREADSHEET_ID is not set in .env")
@@ -266,6 +266,8 @@ def update_task_order(request):
         data = json.loads(request.body)
 
         for item in data:
-            Task.objects.filter(id=item["id"]).update(position=item["position"])
+            task = Task.objects.get(id=item["id"])
+            task.position = item["position"]
+            task.save()
 
         return JsonResponse({"status": "ok"})

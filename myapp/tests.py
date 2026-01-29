@@ -148,7 +148,7 @@ class CSVTest(TestCase):
             content_type="text/csv"
         )
 
-        response = self.client.post(
+        _response = self.client.post(
             reverse("import_csv"),
             {"file": file}
         )

@@ -16,6 +16,7 @@ class Task(models.Model):
     )
 
     created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     position = models.IntegerField(default=0)
@@ -36,3 +37,9 @@ class Task(models.Model):
                 name="unique_task_created_time"
             )
         ]
+
+class SyncStatus(models.Model):
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Last synced at {self.last_synced_at}"
