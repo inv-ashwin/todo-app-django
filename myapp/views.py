@@ -255,6 +255,7 @@ def import_from_google_sheet(_request):
                 "started_at": started_at,
                 "completed_at": completed_at,
                 "position": position,
+                
             }
         )
 
